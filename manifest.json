@@ -1,0 +1,20 @@
+{
+  "name": "Cronograma Capilar",
+  "short_name": "Cronograma",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f3f1",
+  "theme_color": "#d6cfc7",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
