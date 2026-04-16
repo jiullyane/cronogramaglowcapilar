@@ -222,13 +222,13 @@ let selectedDay,selectedType;
 function key(y,m,d){return `${y}-${m}-${d}`}
 
 // ⭐ CRIAR ITEM DE FOTO (com drag + capa + remover)
-function createPhotoItem(imgSrc){
+function createPhotoItem(imgSrc, index){
 
 let container=document.createElement('div');
 container.style.position='relative';
 container.style.display='inline-block';
-container.draggable=true;
 
+// imagem
 let img=document.createElement('img');
 img.src=imgSrc;
 img.style.width='60px';
@@ -253,8 +253,9 @@ star.style.justifyContent='center';
 star.style.cursor='pointer';
 
 star.onclick=()=>{
-tempPhotos=tempPhotos.filter(p=>p!==imgSrc);
-tempPhotos.unshift(imgSrc);
+let selected=tempPhotos[index];
+tempPhotos.splice(index,1);
+tempPhotos.unshift(selected);
 refreshPreview();
 };
 
@@ -276,19 +277,46 @@ removeBtn.style.justifyContent='center';
 removeBtn.style.cursor='pointer';
 
 removeBtn.onclick=()=>{
-container.remove();
-tempPhotos=tempPhotos.filter(p=>p!==imgSrc);
+tempPhotos.splice(index,1);
+refreshPreview();
 };
 
-// 🖐️ DRAG
-container.ondragstart=(e)=>{
-e.dataTransfer.setData('text/plain', imgSrc);
+// ⬅️ MOVER
+let moveLeft=document.createElement('div');
+moveLeft.innerHTML='⬅️';
+moveLeft.style.position='absolute';
+moveLeft.style.bottom='0';
+moveLeft.style.right='22px';
+moveLeft.style.cursor='pointer';
+
+moveLeft.onclick=()=>{
+if(index===0) return;
+[tempPhotos[index-1], tempPhotos[index]] = [tempPhotos[index], tempPhotos[index-1]];
+refreshPreview();
 };
 
-container.ondragover=(e)=>e.preventDefault();
+// ➡️ MOVER
+let moveRight=document.createElement('div');
+moveRight.innerHTML='➡️';
+moveRight.style.position='absolute';
+moveRight.style.bottom='0';
+moveRight.style.right='0';
+moveRight.style.cursor='pointer';
 
-container.ondrop=(e)=>{
-e.preventDefault();
+moveRight.onclick=()=>{
+if(index===tempPhotos.length-1) return;
+[tempPhotos[index+1], tempPhotos[index]] = [tempPhotos[index], tempPhotos[index+1]];
+refreshPreview();
+};
+
+container.appendChild(img);
+container.appendChild(removeBtn);
+container.appendChild(star);
+container.appendChild(moveLeft);
+container.appendChild(moveRight);
+
+return container;
+}
 
 let dragged=e.dataTransfer.getData('text/plain');
 
@@ -312,7 +340,7 @@ return container;
 function refreshPreview(){
 preview.innerHTML='';
 tempPhotos.forEach(p=>{
-preview.appendChild(createPhotoItem(p));
+preview.appendChild(createPhotoItem(p,i));
 });
 }
 
