@@ -1,1 +1,134 @@
-<!DOCTYPE html> <html lang="pt-br"> <head> <link rel="manifest" href="manifest.json"> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Cronograma Capilar</title> <link rel="icon" href="icon.png"> <link rel="apple-touch-icon" href="icon.png"> <meta name="theme-color" content="#d6cfc7"> <meta name="apple-mobile-web-app-capable" content="yes"> <meta name="apple-mobile-web-app-status-bar-style" content="default"> <style> /* (mantive tudo igual) */ :root{ --bg:#f5f3f1; --card:#ffffff; --text:#1a1a1a; --accent:#d6cfc7; } body.dark{ --bg:#1c1c1e; --card:#2c2c2e; --text:#f2f2f2; } body{ margin:0; font-family:-apple-system; background:var(--bg); color:var(--text); } header{text-align:center;padding:18px;font-weight:600;position:relative;} .toggle{position:absolute;right:16px;top:18px;cursor:pointer;} .month-nav{display:flex;justify-content:space-between;padding:0 16px;} .stats{display:flex;gap:8px;padding:10px 16px;} .weekdays{ display:grid; grid-template-columns:repeat(7,1fr); padding:0 16px; font-size:12px; opacity:.6; } .calendar{ display:grid; grid-template-columns:repeat(7,1fr); gap:8px; padding:16px; } .day{ background:var(--card); border-radius:16px; padding:8px; min-height:90px; cursor:pointer; position:relative; overflow:hidden; transition:.25s; } .day:hover{transform:scale(1.05);} .today-dot{ width:6px;height:6px;border-radius:50%; background:var(--accent); position:absolute;top:6px;right:6px; } .tag{ position:absolute; bottom:6px; right:6px; font-size:14px; } .product-name{ position:absolute; bottom:6px; left:6px; right:30px; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .day[style*="background-image"] .product-name{ color:#fff; } .overlay{ position:absolute; inset:0; background:rgba(0,0,0,0.25); } .modal{ position:fixed; top:0;left:0;width:100%;height:100%; background:rgba(0,0,0,.4); display:none;align-items:center;justify-content:center; } .modal-content{ background:var(--card); padding:20px; border-radius:20px; width:90%; max-width:400px; } button{ padding:10px; border:none; border-radius:10px; margin:4px; cursor:pointer; } .type-btn.active{background:var(--accent);} input,textarea,select{ width:100%; margin-top:10px; padding:10px; border-radius:10px; border:none; } img{width:100%;margin-top:10px;border-radius:10px;} #lockScreen{ position:fixed; top:0;left:0; width:100%;height:100%; background:#000000e6; color:white; display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:9999; } </style> </head> <body> <div id="lockScreen"> <h2>🔐 Protegido</h2> <div id="faceID" style="font-size:50px;margin:20px;">🙂</div> <button onclick="fakeBiometric()">Usar Face ID</button> <input type="password" id="passwordInput" placeholder="Ou senha"> <button onclick="unlockApp()">Entrar</button> <button onclick="setPassword()">Definir senha</button> </div> <header> Meu Cronograma <span class="toggle" onclick="toggleDark()">🌙</span> </header> <div class="month-nav"> <button onclick="changeMonth(-1)">◀</button> <div id="monthTitle"></div> <button onclick="changeMonth(1)">▶</button> </div> <div class="stats"> <div id="hCount">🫧 0</div> <div id="nCount">✨ 0</div> <div id="rCount">🧬 0</div> </div> <div class="weekdays"> <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div> </div> <div class="calendar" id="calendar"></div> <div class="modal" id="modal"> <div class="modal-content"> <h3>Registrar</h3> <button class="type-btn" id="h" onclick="selectType('🫧','h')">🫧</button> <button class="type-btn" id="n" onclick="selectType('✨','n')">✨</button> <button class="type-btn" id="r" onclick="selectType('🧬','r')">🧬</button> <select id="favorites"></select> <input type="text" id="product" placeholder="Nome do produto"> <input type="file" id="photo" multiple> <div id="preview"></div> <textarea id="note" placeholder="Observações"></textarea> <button onclick="save()">Salvar</button> <button onclick="removeEntry()">Remover</button> <button onclick="exportBackup()">Exportar</button> <button onclick="importBackup()">Restaurar</button> <button onclick="closeModal()">Fechar</button> </div> </div> <script> const cal=document.getElementById('calendar'); let current=new Date(); let selectedDay,selectedType; function key(y,m,d){return ${y}-${m}-${d}} // ⭐ CRIAR ITEM DE FOTO (com drag + capa + remover) function createPhotoItem(imgSrc, index){ let container=document.createElement('div'); container.style.position='relative'; container.style.display='inline-block'; // imagem let img=document.createElement('img'); img.src=imgSrc; img.style.width='60px'; img.style.margin='4px'; img.style.borderRadius='8px'; // ⭐ CAPA let star=document.createElement('div'); star.innerHTML='⭐'; star.style.position='absolute'; star.style.bottom='0'; star.style.left='0'; star.style.background='#000'; star.style.color='#fff'; star.style.borderRadius='50%'; star.style.width='18px'; star.style.height='18px'; star.style.fontSize='12px'; star.style.display='flex'; star.style.alignItems='center'; star.style.justifyContent='center'; star.style.cursor='pointer'; star.onclick=()=>{ let selected=tempPhotos[index]; tempPhotos.splice(index,1); tempPhotos.unshift(selected); refreshPreview(); }; // ❌ REMOVER let removeBtn=document.createElement('div'); removeBtn.innerHTML='✕'; removeBtn.style.position='absolute'; removeBtn.style.top='0'; removeBtn.style.right='0'; removeBtn.style.background='#000'; removeBtn.style.color='#fff'; removeBtn.style.borderRadius='50%'; removeBtn.style.width='18px'; removeBtn.style.height='18px'; removeBtn.style.fontSize='12px'; removeBtn.style.display='flex'; removeBtn.style.alignItems='center'; removeBtn.style.justifyContent='center'; removeBtn.style.cursor='pointer'; removeBtn.onclick=()=>{ tempPhotos.splice(index,1); refreshPreview(); }; // ⬅️ MOVER let moveLeft=document.createElement('div'); moveLeft.innerHTML='⬅️'; moveLeft.style.position='absolute'; moveLeft.style.bottom='0'; moveLeft.style.right='22px'; moveLeft.style.cursor='pointer'; moveLeft.onclick=()=>{ if(index===0) return; [tempPhotos[index-1], tempPhotos[index]] = [tempPhotos[index], tempPhotos[index-1]]; refreshPreview(); }; // ➡️ MOVER let moveRight=document.createElement('div'); moveRight.innerHTML='➡️'; moveRight.style.position='absolute'; moveRight.style.bottom='0'; moveRight.style.right='0'; moveRight.style.cursor='pointer'; moveRight.onclick=()=>{ if(index===tempPhotos.length-1) return; [tempPhotos[index+1], tempPhotos[index]] = [tempPhotos[index], tempPhotos[index+1]]; refreshPreview(); }; container.appendChild(img); container.appendChild(removeBtn); container.appendChild(star); container.appendChild(moveLeft); container.appendChild(moveRight); return container; } let dragged=e.dataTransfer.getData('text/plain'); let fromIndex=tempPhotos.indexOf(dragged); let toIndex=tempPhotos.indexOf(imgSrc); tempPhotos.splice(fromIndex,1); tempPhotos.splice(toIndex,0,dragged); refreshPreview(); }; container.appendChild(img); container.appendChild(removeBtn); container.appendChild(star); return container; } // 🔄 RECONSTRUIR PREVIEW function refreshPreview(){ preview.innerHTML=''; tempPhotos.forEach(p=>{ preview.appendChild(createPhotoItem(p,i)); }); } function render(){ cal.innerHTML=''; let d=JSON.parse(localStorage.getItem('app')||'{}'); let y=current.getFullYear(); let m=current.getMonth(); monthTitle.innerText=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m]+' '+y; let firstDay=new Date(y,m,1).getDay(); let last=new Date(y,m+1,0).getDate(); let today=new Date(); let h=0,n=0,r=0; for(let i=0;i<firstDay;i++) cal.appendChild(document.createElement('div')); for(let i=1;i<=last;i++){ let el=document.createElement('div'); el.className='day'; el.innerHTML=i; let k=key(y,m,i); if(i===today.getDate()&&m===today.getMonth()) el.innerHTML+=<div class="today-dot"></div>; if(d[k]){ if(d[k].type==='🫧') el.style.background='linear-gradient(135deg, #4FC3F7, #0288D1)'; if(d[k].type==='✨') el.style.background='linear-gradient(135deg, #66BB6A, #2E7D32)'; if(d[k].type==='🧬') el.style.background='linear-gradient(135deg, #FF6F91, #C2185B)'; el.style.boxShadow='0 8px 20px rgba(0,0,0,0.15)'; el.style.color='#fff'; if(d[k].photo && d[k].photo.length){ el.style.backgroundImage=url(${d[k].photo[0]}); el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.innerHTML+=<div class="overlay"></div>; } el.innerHTML+= <div class="tag">${d[k].type}</div> ${d[k].product ? <div class="product-name">${d[k].product}</div> : ''} ; if(d[k].type==='🫧')h++; if(d[k].type==='✨')n++; if(d[k].type==='🧬')r++; } el.onclick=()=>{ selectedDay=i; modal.style.display='flex'; let d=JSON.parse(localStorage.getItem('app')||'{}'); let k=key(current.getFullYear(),current.getMonth(),selectedDay); selectedType=null; document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active')); product.value=''; note.value=''; preview.innerHTML=''; window.tempPhotos=[]; if(d[k]){ selectedType=d[k].type; if(selectedType==='🫧') document.getElementById('h').classList.add('active'); if(selectedType==='✨') document.getElementById('n').classList.add('active'); if(selectedType==='🧬') document.getElementById('r').classList.add('active'); product.value=d[k].product || ''; note.value=d[k].note || ''; if(d[k].photo && d[k].photo.length){ window.tempPhotos=[...d[k].photo]; refreshPreview(); } } loadFavorites(); }; cal.appendChild(el); } hCount.innerText=🫧 ${h}; nCount.innerText=✨ ${n}; rCount.innerText=🧬 ${r}; } function changeMonth(v){current.setMonth(current.getMonth()+v);render();} function selectType(t,id){ selectedType=t; document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); } // 📸 ADD FOTO photo.onchange=e=>{ let files=e.target.files; if(!window.tempPhotos){ window.tempPhotos=[]; } for(let i=0;i<files.length;i++){ let r=new FileReader(); r.onload=x=>{ let imgSrc=x.target.result; if(tempPhotos.includes(imgSrc)) return; tempPhotos.push(imgSrc); refreshPreview(); }; r.readAsDataURL(files[i]); } } function save(){ if(!selectedType){ alert('Escolha um tratamento'); return; } let d=JSON.parse(localStorage.getItem('app')||'{}'); let k=key(current.getFullYear(),current.getMonth(),selectedDay); let productValue=product.value; d[k]={ type:selectedType, photo:window.tempPhotos || [], note:note.value, product:productValue }; localStorage.setItem('app',JSON.stringify(d)); saveFavorite(productValue); autoBackup(); closeModal(); render(); } function removeEntry(){ let d=JSON.parse(localStorage.getItem('app')||'{}'); let k=key(current.getFullYear(),current.getMonth(),selectedDay); if(d[k]) delete d[k]; localStorage.setItem('app',JSON.stringify(d)); closeModal(); render(); } function closeModal(){modal.style.display='none';} // FAVORITOS function loadFavorites(){ let fav=JSON.parse(localStorage.getItem('fav')||'[]'); favorites.innerHTML='<option>Favoritos</option>'; fav.forEach(f=>{ let o=document.createElement('option'); o.value=f; o.textContent=f; favorites.appendChild(o); }); favorites.onchange=function(){ product.value=this.value; } } function saveFavorite(p){ if(!p)return; let fav=JSON.parse(localStorage.getItem('fav')||'[]'); if(!fav.includes(p)){ fav.push(p); localStorage.setItem('fav',JSON.stringify(fav)); } } // BACKUP function autoBackup(){ let h=JSON.parse(localStorage.getItem('backupHistory')||'[]'); h.push(localStorage.getItem('app')); if(h.length>10)h.shift(); localStorage.setItem('backupHistory',JSON.stringify(h)); } function exportBackup(){ let blob=new Blob([localStorage.getItem('app')]); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='backup.json'; a.click(); } function importBackup(){ let i=document.createElement('input'); i.type='file'; i.onchange=e=>{ let r=new FileReader(); r.onload=x=>{ localStorage.setItem('app',x.target.result); render(); }; r.readAsText(e.target.files[0]); }; i.click(); } // SEGURANÇA function unlockApp(){ if(passwordInput.value===localStorage.getItem('pass')){ lockScreen.style.display='none'; }else alert('Senha incorreta'); } function setPassword(){ let p=prompt('Crie senha'); if(p)localStorage.setItem('pass',p); } function fakeBiometric(){ faceID.innerText='🔍'; setTimeout(()=>{ faceID.innerText='✅'; setTimeout(()=>lockScreen.style.display='none',500); },1000); } // UI function toggleDark(){document.body.classList.toggle('dark')} let startX=0; cal.addEventListener('touchstart',e=>startX=e.touches[0].clientX); cal.addEventListener('touchend',e=>{ let endX=e.changedTouches[0].clientX; if(startX-endX>50)changeMonth(1); if(endX-startX>50)changeMonth(-1); }); if(!localStorage.getItem('pass'))lockScreen.style.display='none'; render(); </script> </body> </html>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cronograma Capilar</title>
+
+    <link rel="icon" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <meta name="theme-color" content="#d6cfc7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    <style>
+        :root {
+            --bg: #f5f3f1;
+            --card: #ffffff;
+            --text: #1a1a1a;
+            --accent: #d6cfc7;
+        }
+
+        body.dark {
+            --bg: #1c1c1e;
+            --card: #2c2c2e;
+            --text: #f2f2f2;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.3s ease;
+        }
+
+        header {
+            text-align: center;
+            padding: 18px;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .toggle {
+            position: absolute;
+            right: 16px;
+            top: 18px;
+            cursor: pointer;
+        }
+
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 8px;
+            padding: 10px 16px;
+        }
+
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            padding: 0 16px;
+            font-size: 12px;
+            opacity: .6;
+            text-align: center;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            padding: 16px;
+        }
+
+        .day {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 8px;
+            min-height: 90px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: .25s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .day:hover {
+            transform: scale(1.02);
+        }
+
+        .today-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            position: absolute;
+            top: 6px;
+            right: 6px;
+        }
+
+        .tag {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            font-size: 14px;
+        }
+
+        .product-name {
+            position: absolute;
+            bottom: 6px;
+            left: 6px;
+            right: 30px;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.25);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0; left: 0;
