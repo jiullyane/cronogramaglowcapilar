@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head link rel="manifest" href="manifest.json">
+<head>
+<link rel="manifest" href="manifest.json">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Cronograma Capilar</title>
 
-<!-- 🔥 ÍCONE DO APP -->
 <link rel="icon" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 
@@ -15,6 +15,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 <style>
+/* (mantive tudo igual) */
 :root{
 --bg:#f5f3f1;
 --card:#ffffff;
@@ -199,8 +200,8 @@ Meu Cronograma
 <select id="favorites"></select>
 <input type="text" id="product" placeholder="Nome do produto">
 
-<input type="file" id="photo">
-<img id="preview">
+<input type="file" id="photo" multiple>
+<div id="preview"></div>
 
 <textarea id="note" placeholder="Observações"></textarea>
 
@@ -261,8 +262,8 @@ el.style.background='linear-gradient(135deg, #FF6F91, #C2185B)';
 el.style.boxShadow='0 8px 20px rgba(0,0,0,0.15)';
 el.style.color='#fff';
 
-if(d[k].photo){
-el.style.backgroundImage=`url(${d[k].photo})`;
+if(d[k].photo && d[k].photo.length){
+el.style.backgroundImage=`url(${d[k].photo[0]})`;
 el.style.backgroundSize='cover';
 el.style.backgroundPosition='center';
 el.innerHTML+=`<div class="overlay"></div>`;
@@ -285,27 +286,32 @@ modal.style.display='flex';
 let d=JSON.parse(localStorage.getItem('app')||'{}');
 let k=key(current.getFullYear(),current.getMonth(),selectedDay);
 
-// limpa primeiro
 selectedType=null;
 document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
 product.value='';
 note.value='';
-preview.src='';
+preview.innerHTML='';
 
-// 🔥 AGORA CARREGA SE EXISTIR
 if(d[k]){
 
 selectedType=d[k].type;
 
-// ativa botão correto
 if(selectedType==='🫧') document.getElementById('h').classList.add('active');
 if(selectedType==='✨') document.getElementById('n').classList.add('active');
 if(selectedType==='🧬') document.getElementById('r').classList.add('active');
 
-// preenche campos
 product.value=d[k].product || '';
 note.value=d[k].note || '';
-preview.src=d[k].photo || '';
+
+if(d[k].photo && d[k].photo.length){
+d[k].photo.forEach(p=>{
+let img=document.createElement('img');
+img.src=p;
+img.style.width='60px';
+img.style.margin='4px';
+preview.appendChild(img);
+});
+}
 
 }
 
@@ -329,9 +335,23 @@ document.getElementById(id).classList.add('active');
 }
 
 photo.onchange=e=>{
+preview.innerHTML='';
+let files=e.target.files;
+window.tempPhotos=[];
+
+for(let i=0;i<files.length;i++){
 let r=new FileReader();
-r.onload=x=>preview.src=x.target.result;
-r.readAsDataURL(e.target.files[0]);
+r.onload=x=>{
+tempPhotos.push(x.target.result);
+
+let img=document.createElement('img');
+img.src=x.target.result;
+img.style.width='60px';
+img.style.margin='4px';
+preview.appendChild(img);
+};
+r.readAsDataURL(files[i]);
+}
 }
 
 function save(){
@@ -347,7 +367,7 @@ let productValue=product.value;
 
 d[k]={
 type:selectedType,
-photo:preview.src,
+photo:window.tempPhotos || [],
 note:note.value,
 product:productValue
 };
