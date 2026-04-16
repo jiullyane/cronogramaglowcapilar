@@ -1,7 +1,7 @@
 {
   "name": "Cronograma Capilar",
   "short_name": "Cronograma",
-  "start_url": "./index.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f3f1",
   "theme_color": "#d6cfc7",
