@@ -282,12 +282,32 @@ el.onclick=()=>{
 selectedDay=i;
 modal.style.display='flex';
 
+let d=JSON.parse(localStorage.getItem('app')||'{}');
+let k=key(current.getFullYear(),current.getMonth(),selectedDay);
+
+// limpa primeiro
 selectedType=null;
 document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
-
 product.value='';
 note.value='';
 preview.src='';
+
+// 🔥 AGORA CARREGA SE EXISTIR
+if(d[k]){
+
+selectedType=d[k].type;
+
+// ativa botão correto
+if(selectedType==='🫧') document.getElementById('h').classList.add('active');
+if(selectedType==='✨') document.getElementById('n').classList.add('active');
+if(selectedType==='🧬') document.getElementById('r').classList.add('active');
+
+// preenche campos
+product.value=d[k].product || '';
+note.value=d[k].note || '';
+preview.src=d[k].photo || '';
+
+}
 
 loadFavorites();
 };
