@@ -291,6 +291,7 @@ document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
 product.value='';
 note.value='';
 preview.innerHTML='';
+window.tempPhotos=[];
 
 if(d[k]){
 
@@ -368,21 +369,30 @@ document.getElementById(id).classList.add('active');
 }
 
 photo.onchange=e=>{
-preview.innerHTML='';
 let files=e.target.files;
+
+// ✅ NÃO APAGA MAIS AS ANTIGAS
+if(!window.tempPhotos){
 window.tempPhotos=[];
+}
 
 for(let i=0;i<files.length;i++){
 let r=new FileReader();
+
 r.onload=x=>{
-tempPhotos.push(x.target.result);
+let imgSrc=x.target.result;
+
+// evita duplicar
+if(tempPhotos.includes(imgSrc)) return;
+
+tempPhotos.push(imgSrc);
 
 let container=document.createElement('div');
 container.style.position='relative';
 container.style.display='inline-block';
 
 let img=document.createElement('img');
-img.src=x.target.result;
+img.src=imgSrc;
 img.style.width='60px';
 img.style.margin='4px';
 img.style.borderRadius='8px';
@@ -405,13 +415,14 @@ removeBtn.style.cursor='pointer';
 
 removeBtn.onclick=()=>{
 container.remove();
-tempPhotos.splice(tempPhotos.indexOf(x.target.result),1);
+tempPhotos=tempPhotos.filter(p=>p!==imgSrc);
 };
 
 container.appendChild(img);
 container.appendChild(removeBtn);
 preview.appendChild(container);
 };
+
 r.readAsDataURL(files[i]);
 }
 }
